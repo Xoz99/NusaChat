@@ -5,14 +5,8 @@ import os
 import sys
 import datetime
 import json
-
-# ===== UBAH INI SESUAI NGROK URL KAMU =====
 SERVER_URL = "https://prejuvenile-trickly-jacqui.ngrok-free.dev"
-# ==========================================
-
 CONFIG_FILE = "chat_config.json"
-
-# Color Codes
 class Colors:
     CYAN = '\033[96m'
     LIGHT_BLUE = '\033[94m'
@@ -24,8 +18,6 @@ class Colors:
     RESET = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-    
-    # Bright colors
     BRIGHT_CYAN = '\033[96m'
     BRIGHT_BLUE = '\033[94m'
 
@@ -35,8 +27,6 @@ class ChatClient:
         self.sio = socketio.Client(reconnection=True, reconnection_attempts=10, reconnection_delay=1)
         self.nickname = ""
         self.connected = False
-        
-        # Setup event handlers
         self.sio.on('connect', self.on_connect)
         self.sio.on('disconnect', self.on_disconnect)
         self.sio.on('message', self.on_message)
@@ -86,8 +76,6 @@ class ChatClient:
         print(f"\n{Colors.CYAN}{'─'*60}{Colors.RESET}")
         print(f"{Colors.YELLOW}Ketik /help untuk melihat perintah yang tersedia{Colors.RESET}")
         print(f"{Colors.CYAN}{'─'*60}{Colors.RESET}\n")
-        
-        # Set nickname
         self.sio.emit('set_nickname', {'nickname': self.nickname})
     
     def on_disconnect(self):
@@ -98,7 +86,6 @@ class ChatClient:
         timestamp = data.get('timestamp', '')
         nickname = data.get('nickname', '')
         message = data.get('message', '')
-        # Print dengan newline supaya tidak menimpa input prompt
         print(f"\r{Colors.LIGHT_BLUE}[{timestamp}]{Colors.RESET} {Colors.MAGENTA}{nickname}{Colors.RESET}: {message}\n{Colors.CYAN}[PESAN]{Colors.RESET} ", end='', flush=True)
     
     def on_server_message(self, data):
@@ -155,8 +142,6 @@ class ChatClient:
     def start(self):
         self.clear_screen()
         self.print_banner()
-        
-        # Load username dari file
         saved_nickname = self.load_config()
         
         if saved_nickname:
@@ -181,8 +166,12 @@ class ChatClient:
             if not self.nickname:
                 print(f"{Colors.RED}{Colors.BOLD}[✗] Username tidak boleh kosong!{Colors.RESET}")
                 return
-        
-        # Save username
+
+
+
+
+
+
         self.save_config()
         print(f"\n{Colors.GREEN}{Colors.BOLD}[✓] Username: {self.nickname}{Colors.RESET}")
         
@@ -191,13 +180,9 @@ class ChatClient:
             self.sio.connect(self.server_url, 
                            transports=['websocket', 'polling'],
                            wait_timeout=10)
-            
-            # Start input thread
             input_thread = threading.Thread(target=self.send_input)
             input_thread.daemon = True
             input_thread.start()
-            
-            # Keep main thread alive
             self.sio.wait()
             
         except Exception as e:
