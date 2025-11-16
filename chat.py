@@ -5,6 +5,7 @@ import os
 import sys
 import datetime
 import json
+
 SERVER_URL = "https://prejuvenile-trickly-jacqui.ngrok-free.dev"
 CONFIG_FILE = "chat_config.json"
 class Colors:
@@ -27,11 +28,13 @@ class ChatClient:
         self.sio = socketio.Client(reconnection=True, reconnection_attempts=10, reconnection_delay=1)
         self.nickname = ""
         self.connected = False
+        self.user_count = 1  
         self.sio.on('connect', self.on_connect)
         self.sio.on('disconnect', self.on_disconnect)
         self.sio.on('message', self.on_message)
         self.sio.on('server_message', self.on_server_message)
         self.sio.on('error', self.on_error)
+        self.sio.on('user_count', self.on_user_count)
     
     def load_config(self):
         """Load username dari file config"""
@@ -74,7 +77,7 @@ class ChatClient:
         print(f"{Colors.GREEN}{Colors.BOLD}[✓] Terhubung ke server!{Colors.RESET}")
         self.connected = True
         print(f"\n{Colors.CYAN}{'─'*60}{Colors.RESET}")
-        print(f"{Colors.YELLOW}Ketik /help untuk melihat perintah yang tersedia{Colors.RESET}")
+        print(f"{Colors.YELLOW}Online: {self.user_count} people | Ketik /help untuk bantuan{Colors.RESET}")
         print(f"{Colors.CYAN}{'─'*60}{Colors.RESET}\n")
         self.sio.emit('set_nickname', {'nickname': self.nickname})
     
@@ -86,7 +89,9 @@ class ChatClient:
         timestamp = data.get('timestamp', '')
         nickname = data.get('nickname', '')
         message = data.get('message', '')
-        print(f"\r{Colors.LIGHT_BLUE}[{timestamp}]{Colors.RESET} {Colors.MAGENTA}{nickname}{Colors.RESET}: {message}\n{Colors.CYAN}[PESAN]{Colors.RESET} ", end='', flush=True)
+        is_sender = data.get('is_sender', False)
+        display_name = f"{Colors.GREEN}You{Colors.RESET}" if is_sender else f"{Colors.MAGENTA}{nickname}{Colors.RESET}"
+        print(f"\r{Colors.LIGHT_BLUE}[{timestamp}]{Colors.RESET} {display_name}: {message}\n{Colors.CYAN}[PESAN]{Colors.RESET} ", end='', flush=True)
     
     def on_server_message(self, data):
         message = data.get('message', '')
@@ -95,6 +100,10 @@ class ChatClient:
     def on_error(self, data):
         message = data.get('message', '')
         print(f"\r{Colors.RED}{Colors.BOLD}[ERROR]{Colors.RESET} {message}\n{Colors.CYAN}[PESAN]{Colors.RESET} ", end='', flush=True)
+    
+    def on_user_count(self, data):
+        """Update jumlah user yang online"""
+        self.user_count = data.get('count', 1)
     
     def send_input(self):
         while self.connected:
@@ -108,12 +117,14 @@ class ChatClient:
                     os._exit(0)
                 elif message.lower() == '/help':
                     print(f"""{Colors.BRIGHT_CYAN}{Colors.BOLD}
-╔════════════════════════════════════════╗
-║ /quit   - Keluar dari chat             ║
-║ /help   - Tampilkan bantuan            ║
-║ /clear  - Bersihkan layar              ║
-║ /change - Ganti username               ║
-╚════════════════════════════════════════╝{Colors.RESET}
+╔═══════════════════════════════════════════╗
+║                   BANTUAN                 ║
+├───────────────────────────────────────────┤
+║ • quit   → Keluar dari chat               ║
+║ • help   → Tampilkan bantuan              ║
+║ • clear  → Bersihkan layar                ║
+║ • change → Ganti username                 ║
+╚═══════════════════════════════════════════╝{Colors.RESET}
 """)
                 elif message.lower() == '/clear':
                     self.clear_screen()
@@ -140,7 +151,9 @@ class ChatClient:
                 break
     
     def start(self):
+        import time
         self.clear_screen()
+        time.sleep(0.2)  
         self.print_banner()
         saved_nickname = self.load_config()
         
@@ -166,12 +179,6 @@ class ChatClient:
             if not self.nickname:
                 print(f"{Colors.RED}{Colors.BOLD}[✗] Username tidak boleh kosong!{Colors.RESET}")
                 return
-
-
-
-
-
-
         self.save_config()
         print(f"\n{Colors.GREEN}{Colors.BOLD}[✓] Username: {self.nickname}{Colors.RESET}")
         
